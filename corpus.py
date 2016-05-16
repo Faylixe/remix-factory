@@ -14,7 +14,7 @@ CONVERTERS = {}
 CONVERTERS['.mp3'] = lambda file: return file
 
 # Builds and returns the corpus from the directory retrieved from the configuration.
-def get():
+def build():
     return fromDirectory(configuration.CORPUS_DIRECTORY)
 
 # Builds and returns the corpus from the given directory.
@@ -28,7 +28,7 @@ def fromDirectory(directory):
         if isfile(fullpath) and extension in SUPPORTED_EXTENSION:
             corpus.append(fromFile(fullpath))
 
-#
+# TODO : Document
 def fromFile(file):
     extension = file[-4:]
     if not exists(file) or not extension in SUPPORTED_EXTENSION:
@@ -43,5 +43,4 @@ def convert(file):
     extension = file[-4:]
     if not exists(file) or not extension in SUPPORTED_EXTENSION:
         raise IOError('%s file format is not supported' % extension)
-    CONVERTERS[extension](file)
-    return
+    return CONVERTERS[extension](file)
