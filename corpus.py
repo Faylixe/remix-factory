@@ -1,46 +1,97 @@
 #!/usr/bin/python
 
-from os import listdir
-from os.path import isfile, join, exists
+import logging
+
+from os import listdir, makedirs
+from os.path import isfile, join, exists, splitext, basename
 from scipy.io import wavfile
+from pydub import AudioSegment
 
 import configuration
 
 # Enumeration of all file format supported by this script.
-SUPPORTED_EXTENSION = ['.wav']
+SUPPORTED_EXTENSION = ['.wav', '.mp3']
 
 #  Audio file format converters.
 CONVERTERS = {}
-CONVERTERS['.mp3'] = lambda file: return file
+CONVERTERS['.mp3'] = lambda file: AudioSegment.from_mp3(file)
 
-# Builds and returns the corpus from the directory retrieved from the configuration.
-def build():
-    return fromDirectory(configuration.CORPUS_DIRECTORY)
+class Corpus:
+    """ Class that defines a corpus with batch facilities. """
 
-# Builds and returns the corpus from the given directory.
-def fromDirectory(directory):
-    if not exists(directory):
-        raise IOError('Directory %s does not exist' % directory)
-    corpus = []
-    for file in listdir(directory):
-        fullpath = join(directory, file)
-        extension = file[-4:]
-        if isfile(fullpath) and extension in SUPPORTED_EXTENSION:
-            corpus.append(fromFile(fullpath))
+    def __init__(self, directory):
+        """ Default constructor. Ensures given directory exist and crawls original song. """
+        if not exists(directory):
+            raise IOError('Directory %s does not exist' % directory)
+        self.originalDirectory = join(directory, configuration.CORPUS_ORIGINAL)
+        self.remixedDirectory = join(directory, configuration.CORPUS_REMIXED)
+        self.files = []
+        for file in listdir(self.originalDirectory):
+            fullpath = join(self.originalDirectory, file)
+            extension = file[-4:]
+            if isfile(fullpath) and extension in SUPPORTED_EXTENSION:
+                self.files.append(fullpath)
+        logging.info('%d files detected' % len(self.files))
 
-# TODO : Document
-def fromFile(file):
+    def getVectorSize(self):
+        """ Returns the maximum vector size from all songs in the corpus. """
+        size = 0
+        for file in self.files:
+            remixed = join(self.remixedDirectory, basename(file))
+            size = max(size, len(load(file)))
+            size = max(size, len(load(remixed)))
+        return size
+
+    def startBatch(self, batchSize):
+        """ Initializes batching process using given size for created batch. """
+        self.current = 0
+        self.batchSize = batchSize
+        if batchSize > len(self.files):
+            return 1
+        n = len(self.files) / batchSize
+        if len(self.files) % batchSize != 0:
+            return n + 1
+        return n
+
+    def nextBatch(self):
+        """ Creates and returns the next batch. """
+        batch = []
+        for i in xrange(self.batchSize):
+            index = self.current + i
+            if index < len(self.files):
+                original = self.files[index]
+                remixed = join(self.remixedDirectory, basename(original))
+                # TODO : Normalizes vector using right zero padding.
+                batch.append((load(original), load(remixed)))
+        self.current = self.current + 1
+        return batch
+
+# TODO : Ensure rate is equals for all songs.
+def load(file):
+    """ Loads the given wave file numerical values. """
     extension = file[-4:]
     if not exists(file) or not extension in SUPPORTED_EXTENSION:
         raise IOError('%s file format is not supported' % extension)
     if extension != '.wav':
         file = convert(file)
-    rate, data = wavfile.read(file)
-    return data.astype('float32') / 32767.0, rate
+    _, data = wavfile.read(file)
+    return data# .astype('float32') / 32767.0 # TODO : Ensure normalization process is valid.
 
-# Convert the given file to a valid wav format and returns the path of the converted file.
+def save(vector, file):
+    """ Saves the given vector to the given file. """
+    # TODO : implement
+    return
+
 def convert(file):
+    """ Convert the given file to a valid wav format and returns the path of the converted file. """
+    if not exists(configuration.CONVERTION_DIRECTORY):
+        makedirs(configuration.CONVERTION_DIRECTORY)
     extension = file[-4:]
     if not exists(file) or not extension in SUPPORTED_EXTENSION:
         raise IOError('%s file format is not supported' % extension)
-    return CONVERTERS[extension](file)
+    filename = splitext(basename(file))[0]
+    path = join(configuration.CONVERTION_DIRECTORY, filename + '.wav')
+    if (not exists(path)):
+        logging.info("Converting file %s" % file)
+        CONVERTERS[extension](file).export(path, format='wav')
+    return path

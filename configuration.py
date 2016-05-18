@@ -1,14 +1,13 @@
 #!/usr/bin/python
 
-# File parameters.
-CORPUS_DIRECTORY = 'corpus/'
-MODEL_NAME = 'apolon-model'
-MODEL_FILE_PREFIX = 'apolon-model-'
-MODEL_DIRECTORY = 'model/'
-CONVERTION_DIRECTORY = '/tmp/apolon/'
-
+CONVERTION_DIRECTORY = '/tmp/remix-factory/'
+CORPUS_ORIGINAL = 'original'
+CORPUS_REMIXED = 'remixed'
+NEURONS_DIRECTORY = 'neurons'
+NEURONS_FILE_PREFIX = 'neuron-'
+BATCH_SIZE = 100
+ALPHA = 100
+THREAD = 8
 # Audio parameters.
 SAMPLING_FREQUENCY = 44100
 HIDDEN_DIMENSION_SIZE = 1024  # Number of hidden dimensions. For best results, this should be >= freq_space_dims, but most consumer GPUs can't handle large sizes
-
-WINDOW_SIZE = 3

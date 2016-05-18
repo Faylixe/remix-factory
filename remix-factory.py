@@ -2,29 +2,42 @@
 
 import argparse
 import logging
+
+import configuration
+
+from corpus import Corpus
 from neuronalnetwork import NeuronalNetwork
 
-LOGGER = logging.getLogger('remix-factory')
-
-def train(corpus, path):
-    """ """
-    LOGGER.info("Load corpus from directory %s" % args.dataset)
-    corpus = corpus.build()
-    n = 0
-    model = NeuronalNetwork(n)
-    LOGGER.info("Start training")
-    model.train(corpus)
-    LOGGER.info("Saving model to %s" % args.model)
-    model.save(args.model)
+def train(corpusPath, modelPath):
+    """ Train a new model using the given corpus directory and saves it to the given model path. """
+    logging.info('Load corpus from directory %s' % args.dataset)
+    corpus = Corpus(corpusPath)
+    logging.info('Retrieving maximum vector size from dataset')
+    size = corpus.getVectorSize()
+    logging.info('Neuronal network size : %d' % size)
+    logging.info('Creating empty neuronal network')
+    model = NeuronalNetwork(size)
+    logging.info('Start training')
+    n = corpus.startBatch(configuration.BATCH_SIZE)
+    for i in xrange(n):
+        logging.info('Training over batch #%d' % i)
+        batch = corpus.nextBatch()
+        model.train(batch, configuration.ALPHA)
+    logging.info('Saving model to %s' % args.model)
+    model.save(modelPath)
 
 def create(modelPath, songPath):
-    """ """
+    """ Creates a song from the given model and save it. """
+    logging.info('Loading model from file %s' % modelPath)
     model = NeuronalNetwork.load(modelPath)
-    # TODO : Load song as vector.
+    logging.info('Loading song from file %s' % songPath)
+    original = corpus.load(songPath)
+    logging.info('Applying remix transformation')
     remixed = model.apply(original)
-    # TODO : Save generated song.
+    corpus.save(remixed, 'remixed-song.wav') # TODO : Build filename.
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
     # Parse command line parameters.
     parser = argparse.ArgumentParser()
     parser.add_argument('-t', '--train', help='Trains a model using a given corpus', action='store_true')
@@ -36,6 +49,6 @@ if __name__ == '__main__':
     if args.train:
         train(args.dataset, args.model)
     elif args.create:
-        create(args.model) # TODO : Add song path.
+        create(args.model) # TODO : Add song path ?.
     else:
-        # TODO : Show error.
+        logging.error('Action train or create should be provided')
