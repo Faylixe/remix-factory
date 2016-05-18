@@ -114,28 +114,27 @@ class NeuronalNetwork:
         """ Creates a untrained neuronal network with n neurons. """
         if not exists(configuration.NEURONS_DIRECTORY):
             makedirs(configuration.NEURONS_DIRECTORY)
-        pool = Pool(configuration.THREAD)
-        manager = Manager()
-        lock = manager.Lock()
+        self.pool = Pool(configuration.THREAD)
+        self.lock = Manager().Lock()
+
+    def create(self):
+        """ Initializes this neuronal network. """
         monitor = Bar('Creating neurons', max=size)
         source = Neuron(size, id)
         source.reset()
         monitor.next()
-        factory = NeuronFactory(size, lock, source, monitor )
-        self.neurons = pool.map(factory, xrange(size))
-        pool.close()
-        pool.join()
+        factory = NeuronFactory(size, self.lock, source, monitor)
+        self.neurons = self.pool.map(factory, xrange(size))
+        self.pool.close()
+        self.pool.join()
 
     def train(self, corpus, alpha):
         """ Trains this network using gradient descent. """
-        pool = Pool(configuration.THREAD)
-        manager = Manager()
-        lock = manager.Lock()
         monitor = Bar('Training neurons', max=len(self.neurons))
-        trainer = NeuronTrainer(lock, monitor, alpha, corpus)
-        pool.apply_async(trainer, self.neurons)
-        pool.close()
-        pool.join()
+        trainer = NeuronTrainer(self.lock, monitor, alpha, corpus)
+        self.pool.apply_async(trainer, self.neurons)
+        self.pool.close()
+        self.pool.join()
 
     def save(self, path):
         """ Saves this neuronal network to the file denoted by the given path. """

@@ -16,6 +16,7 @@ def getModel(memento, corpus):
         logging.info('Neuronal network size : %d' % size)
         logging.info('Creating empty neuronal network')
         model = NeuronalNetwork(size)
+        model.create()
         memento.notifyNetworkCreated()
         return model
     else:
