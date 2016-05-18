@@ -1,20 +1,15 @@
 #!/usr/bin/python
 
 import logging
+import numpy
 import pickle
 
-import numpy
-
-from os import makedirs
+from backports import lzma
+from os import makedirs, remove
 from os.path import join, exists
 from multiprocessing import Pool
 
 import configuration
-
-#NEURON_SIZE = 0
-#def createNeuron(i):
-#    """ Static factory that allows Neuron to be created through multiprocessing. """
-#    return Neuron(NEURON_SIZE, i)
 
 class Neuron:
     """ Class that represents a neuron of our network. """
@@ -22,26 +17,46 @@ class Neuron:
     def __init__(self, size, id, value=1):
         """ Default constructor. Initializes weight list with the given value. """
         self.file = join(configuration.NEURONS_DIRECTORY, configuration.NEURONS_FILE_PREFIX + str(id))
-        weights = numpy.empty(size)
+        self.compressedFile = self.file + configuration.COMPRESSION_EXTENSION
         # TODO : Add activation weight ?
-        weights.fill(value)
-        numpy.save(self.file, weights)
+        pattern = numpy.array([value, value], dtype='int16')
+        weights = numpy.tile(pattern, [size, 1])
+        self.save(weights)
 
     def apply(self, vector):
         """ Applies neuronal computation to the given vector. """
-        weights = numpy.load(self.file)
-        result = 0 # TODO : Add activation weight ?
+        weights = self.load()
+        result = [0, 0] # TODO : Add activation weight ?
         for i in xrange(len(vector)):
-            result = result + (vector[i] * weights[i])
+            result[0] = result[0] + (vector[i][0] * weights[i][0])
+            result[1] = result[1] + (vector[i][1] * weights[i][1])
         return result
 
     def train(self, sample, alpha):
         """ Train this neuron using the given sample and alpha learning coefficient. """
         output = self.apply(sample[0])
-        weights = numpy.load(self.file)
+        weights = self.load()
         for i in xrange(len(weights)):
-            weights[i] = weights[i] + (alpha * (sample[1][i] - output) * sample[0][i])
-        numpy.save(self.file, weights)
+            weights[i][0] = weights[i][0] + (alpha * (sample[1][i][0] - output) * sample[0][i][0])
+            weights[i][1] = weights[i][1] + (alpha * (sample[1][i][1] - output) * sample[0][i][1])
+        self.save()
+
+    def save(self, weights):
+        """ """
+        weights.tofile(self.file)
+        with open(self.file, "rb") as source:
+            with lzma.open(self.compressedFile, "w") as compressor:
+                compressor.write(source.read())
+        remove(self.file)
+
+    def load(self):
+        """ """
+        with open(self.file, "wb") as target:
+            with lzma.open(self.compressedFile, "r") as uncompressor:
+                target.write(uncompressor.read())
+        weights = numpy.load(self.file)
+        remove(self.file)
+        return weights
 
 class NeuronFactory:
     """ A NeuronFactory is in charge of creating Neuron through a pool. """
@@ -61,7 +76,6 @@ class NeuronalNetwork:
         """ Creates a untrained neuronal network with n neurons. """
         if not exists(configuration.NEURONS_DIRECTORY):
             makedirs(configuration.NEURONS_DIRECTORY)
-        #NEURON_SIZE = size
         factory = NeuronFactory(size)
         pool = Pool(configuration.THREAD)
         self.neurons = pool.map(factory, xrange(size))
@@ -85,7 +99,7 @@ class NeuronalNetwork:
     def apply(self, vector):
         """ Transforms the given vector by applying each neuron to it. """
         size = len(self.neurons)
-        result = numpy.empty(size)
+        result = numpy.empty(size, dtype='int16')
         for i in xrange(n):
             result[i] = self.neurons[i].apply(vector)
         return result
