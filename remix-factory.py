@@ -7,16 +7,28 @@ import configuration
 
 from corpus import Corpus
 from neuronalnetwork import NeuronalNetwork
+from memento import Memento
 
-def train(corpusPath, modelPath):
+def getModel(memento, corpus):
+    if not memento.isNetworkCreated():
+        logging.info('Retrieving maximum vector size from dataset')
+        size = corpus.getVectorSize()
+        logging.info('Neuronal network size : %d' % size)
+        logging.info('Creating empty neuronal network')
+        model = NeuronalNetwork(size)
+        memento.notifyNetworkCreated()
+        return model
+    else:
+        # TODO : Load model
+        return
+
+# TODO : Add memento pattern for saving training step.
+def train(corpusPath, modelPath, memento):
     """ Train a new model using the given corpus directory and saves it to the given model path. """
     logging.info('Load corpus from directory %s' % args.dataset)
     corpus = Corpus(corpusPath)
-    logging.info('Retrieving maximum vector size from dataset')
-    size = corpus.getVectorSize()
-    logging.info('Neuronal network size : %d' % size)
-    logging.info('Creating empty neuronal network')
-    model = NeuronalNetwork(size)
+    memento.notifyCorpusCreated()
+    model = getModel(memento, corpus)
     logging.info('Start training')
     n = corpus.startBatch(configuration.BATCH_SIZE)
     for i in xrange(n):
@@ -37,7 +49,7 @@ def create(modelPath, songPath):
     corpus.save(remixed, 'remixed-song.wav') # TODO : Build filename.
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s', datefmt='%Y-%m-%d %I:%M:%S')
     # Parse command line parameters.
     parser = argparse.ArgumentParser()
     parser.add_argument('-t', '--train', help='Trains a model using a given corpus', action='store_true')
@@ -47,7 +59,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     # Handles action.
     if args.train:
-        train(args.dataset, args.model)
+        train(args.dataset, args.model, Memento('memento.mem'))
     elif args.create:
         create(args.model) # TODO : Add song path ?.
     else:

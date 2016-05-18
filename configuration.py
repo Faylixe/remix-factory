@@ -3,11 +3,11 @@
 CONVERTION_DIRECTORY = '/tmp/remix-factory/'
 CORPUS_ORIGINAL = 'original'
 CORPUS_REMIXED = 'remixed'
-NEURONS_DIRECTORY = 'neurons'
+NEURONS_DIRECTORY = '/home/hdd/remix-factory/neurons'
 NEURONS_FILE_PREFIX = 'neuron-'
 COMPRESSION_EXTENSION = ".cbn" # Compressed Binary Neuron
 BATCH_SIZE = 100
-ALPHA = 100
+ALPHA = 1
 THREAD = 8
 # Audio parameters.
 SAMPLING_FREQUENCY = 44100
