@@ -74,7 +74,7 @@ class NeuronFactory:
     """ A NeuronFactory is in charge of creating Neuron through a pool. """
 
     def __init__(self, size, lock, source, monitor):
-        """ Default constructor. Initializes neuron size. """
+        """ Default constructor. Initializes factory attributes. """
         self.size = size
         self.lock = lock
         self.source = source
@@ -88,6 +88,24 @@ class NeuronFactory:
             self.monitor.next()
             time.sleep(0.001)
         return neuron
+
+class NeuronTrainer:
+    """ A NeuronTrainer is in charge of training a given neuron through a pool. """
+
+    def __init__(self, corpus, lock, monitor, alpha):
+        """ Default constructor. Initializes trainer attributes. """
+        self.lock = lock
+        self.monitor = monitor
+        self.alpha = alpha
+        self.corpus
+
+    def __call__(self, neuron):
+        """ Training method that applies the given corpus to the given neuron. """
+        for sample in self.corpus:
+            neuron.train(sample, self.alpha)
+        with self.lock:
+            self.monitor.next()
+            time.sleep(0.001)
 
 class NeuronalNetwork:
     """ Class that represents our neuronal network. """
@@ -110,12 +128,14 @@ class NeuronalNetwork:
 
     def train(self, corpus, alpha):
         """ Trains this network using gradient descent. """
-        i = 0
-        for neuron in self.neurons:
-            logging.info("Training neuron #%d" % i)
-            i += 1
-            for sample in corpus:
-                neuron.train(sample, alpha)
+        pool = Pool(configuration.THREAD)
+        manager = Manager()
+        lock = manager.Lock()
+        monitor = Bar('Training neurons', max=len(self.neurons))
+        trainer = NeuronTrainer(lock, monitor, alpha, corpus)
+        pool.apply_async(trainer, self.neurons)
+        pool.close()
+        pool.join()
 
     def save(self, path):
         """ Saves this neuronal network to the file denoted by the given path. """

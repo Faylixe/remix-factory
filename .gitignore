@@ -1,3 +1,4 @@
 /corpus/
 /*.pyc
 /neurons/
+/*.mem
