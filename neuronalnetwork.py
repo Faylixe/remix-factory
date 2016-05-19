@@ -118,12 +118,12 @@ class NeuronalNetwork:
         self.lock = Manager().Lock()
         self.size = size
 
-    def create(self, thread):
+    def create(self):
         """ Initializes this neuronal network. """
         if not exists(self.directory):
             makedirs(self.directory)
         monitor = Bar('Creating neurons', max=self.size)
-        source = Neuron(self.size, 0)
+        source = Neuron(self.directory, self.size, 'source')
         source.reset()
         monitor.next()
         factory = NeuronFactory(self.directory, self.size, self.lock, source, monitor)

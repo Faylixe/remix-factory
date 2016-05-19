@@ -53,18 +53,18 @@ if __name__ == '__main__':
     parser.add_argument('-r', '--remix', help='Generates a remix from the given song', action='store_true')
     parser.add_argument('-m', '--model', help='Path of the directory that will contains our model')
     parser.add_argument('-d', '--dataset', help='Path of the corpus directory to use for training the model')
-    parser.add_argument('-b', '--batchSize', help='(optional) Size of the batch to use for training, default value is 10')
+    parser.add_argument('-b', '--batchSize', type=int, help='(optional) Size of the batch to use for training, default value is 10')
     parser.add_argument('-l', '--learningRate', help='(optional) Learning rate parameter for gradient descent algorithm, default value is 1')
-    parser.add_argument('-p', '--thread', help='(optional) Number of thread to use, if not specified maximum number will be used.')
+    parser.add_argument('-p', '--thread', type=int, help='(optional) Number of thread to use, if not specified maximum number will be used.')
     args = parser.parse_args()
     if args.model == None:
         logging.error('Missing --model parameter, abort')
     if args.create:
-        if args.corpus == None:
+        if args.dataset == None:
             logging.error('Missing --corpus parameter, abort')
         create(args.dataset, args.model, args.thread)
     elif args.train:
-        if args.corpus == None:
+        if args.dataset == None:
             logging.error('Missing --corpus parameter, abort')
         train(args.dataset, args.model, args.batchSize, args.learningRate, args.thread)
     elif args.remix:
