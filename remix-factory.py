@@ -57,7 +57,7 @@ def generate(modelDirectory, songPath, remixPath):
     logging.info('Applying neuronal network model' % songPath)
     remixed = model.apply(vector)
     logging.info('Saving created song to %s' % remixPath)
-    wavfile.write(remixPath, rate, remixed) # TODO : Get rate ?
+    wavfile.write(remixPath, 44100, remixed) # TODO : Get rate ?
 
 def check(args, key):
     """ Ensure parameter denoted from the given key exist in the args dictionary"""
