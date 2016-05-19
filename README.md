@@ -6,7 +6,8 @@ TODO : Write introduction.
 
 TODO : Write model description.
 
-![Model](https://octodex.github.com/images/model.png)
+![Model](https://github.com/Faylixe/remix-factory/blob/master/model.png?raw=true)
+
 ## Architecture
 
 TODO : Write architecture description.
