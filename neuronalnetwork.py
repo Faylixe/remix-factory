@@ -13,7 +13,6 @@ from progress.bar import Bar
 from shutil import copyfile
 
 import configuration
-import console
 
 class Neuron:
     """ Class that represents a neuron of our network. """

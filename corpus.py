@@ -16,6 +16,32 @@ SUPPORTED_EXTENSION = ['.wav', '.mp3']
 CONVERTERS = {}
 CONVERTERS['.mp3'] = lambda file: AudioSegment.from_mp3(file)
 
+
+# TODO : Ensure rate is equals for all songs.
+def load(file):
+    """ Loads the given wave file numerical values. """
+    extension = file[-4:]
+    if not exists(file) or not extension in SUPPORTED_EXTENSION:
+        raise IOError('%s file format is not supported' % extension)
+    if extension != '.wav':
+        file = convert(file)
+    _, data = wavfile.read(file)
+    return data
+
+def convert(file):
+    """ Convert the given file to a valid wav format and returns the path of the converted file. """
+    if not exists(configuration.CONVERTION_DIRECTORY):
+        makedirs(configuration.CONVERTION_DIRECTORY)
+    extension = file[-4:]
+    if not exists(file) or not extension in SUPPORTED_EXTENSION:
+        raise IOError('%s file format is not supported' % extension)
+    filename = splitext(basename(file))[0]
+    path = join(configuration.CONVERTION_DIRECTORY, filename + '.wav')
+    if (not exists(path)):
+        logging.info("Converting file %s" % file)
+        CONVERTERS[extension](file).export(path, format='wav')
+    return path
+
 class Corpus:
     """ Class that defines a corpus with batch facilities. """
 
@@ -41,6 +67,7 @@ class Corpus:
             remixed = join(self.remixedDirectory, basename(file))
             size = max(size, len(load(file)))
             size = max(size, len(load(remixed)))
+        self.size = size
         return size
 
     def startBatch(self, batchSize):
@@ -60,34 +87,13 @@ class Corpus:
         for i in xrange(self.batchSize):
             index = self.current + i
             if index < len(self.files):
-                original = self.files[index]
-                remixed = join(self.remixedDirectory, basename(original))
-                # TODO : Normalizes vector using right zero padding.
-                batch.append((load(original), load(remixed)))
+                original = load(self.files[index])
+                remixed = load(join(self.remixedDirectory, basename(original)))
+                # Normalizes vector using right zero padding.
+                if len(original) < self.size:
+                    original = original.resize(self.size)
+                if len(remixed) < self.size:
+                    remixed = remixed.resize(self.size)
+                batch.append((original, remixed))
         self.current = self.current + 1
         return batch
-
-    # TODO : Ensure rate is equals for all songs.
-    def load(file):
-        """ Loads the given wave file numerical values. """
-        extension = file[-4:]
-        if not exists(file) or not extension in SUPPORTED_EXTENSION:
-            raise IOError('%s file format is not supported' % extension)
-        if extension != '.wav':
-            file = convert(file)
-        _, data = wavfile.read(file)
-        return data
-
-    def convert(file):
-        """ Convert the given file to a valid wav format and returns the path of the converted file. """
-        if not exists(configuration.CONVERTION_DIRECTORY):
-            makedirs(configuration.CONVERTION_DIRECTORY)
-        extension = file[-4:]
-        if not exists(file) or not extension in SUPPORTED_EXTENSION:
-            raise IOError('%s file format is not supported' % extension)
-        filename = splitext(basename(file))[0]
-        path = join(configuration.CONVERTION_DIRECTORY, filename + '.wav')
-        if (not exists(path)):
-            logging.info("Converting file %s" % file)
-            CONVERTERS[extension](file).export(path, format='wav')
-        return path

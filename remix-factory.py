@@ -5,7 +5,7 @@ import logging
 from sys import exit
 
 import configuration
-from corpus import Corpus
+from corpus import Corpus, load
 from neuronalnetwork import NeuronalNetwork
 
 def getCorpus(corpusDirectory):
@@ -53,7 +53,7 @@ def generate(modelDirectory, songPath, remixPath):
     size = NeuronalNetwork.getSize(modelDirectory)
     model = NeuronalNetwork(size, modelDirectory, thread)
     logging.info('Loading %s as numerical vector' % songPath)
-    vector = Corpus.load(songPath)
+    vector = load(songPath)
     logging.info('Applying neuronal network model' % songPath)
     remixed = model.apply(vector)
     logging.info('Saving created song to %s' % remixPath)
@@ -61,7 +61,7 @@ def generate(modelDirectory, songPath, remixPath):
 
 def check(args, key):
     """ Ensure parameter denoted from the given key exist in the args dictionary"""
-    if args[key] == None:
+    if args.__dict__[key] == None:
         logging.error('Missing --%s parameter, abort' % key)
         exit(2)
 
@@ -83,7 +83,7 @@ if __name__ == '__main__':
     check(args, 'model')
     if args.create:
         check(args, 'dataset')
-        create(args.dataset, args.model, args.thread, args.window)
+        create(args.dataset, args.model, args.window, args.thread)
     elif args.train:
         check(args, 'dataset')
         train(args.dataset, args.model, args.batchSize, args.learningRate, args.window, args.thread)

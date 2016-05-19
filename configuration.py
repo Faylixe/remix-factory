@@ -3,7 +3,7 @@
 CONVERTION_DIRECTORY = '/tmp/remix-factory/'
 CORPUS_ORIGINAL = 'original'
 CORPUS_REMIXED = 'remixed'
-MODEL_METADATA = .metadata
+MODEL_METADATA = '.metadata'
 NEURONS_FILE_PREFIX = 'neuron-'
 COMPRESSION_EXTENSION = ".cbn" # Compressed Binary Neuron
 DEFAULT_BATCH_SIZE = 10
