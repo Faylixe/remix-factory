@@ -25,6 +25,7 @@ class Corpus:
             raise IOError('Directory %s does not exist' % directory)
         self.originalDirectory = join(directory, configuration.CORPUS_ORIGINAL)
         self.remixedDirectory = join(directory, configuration.CORPUS_REMIXED)
+        # TODO : Ensures directory exists.
         self.files = []
         for file in listdir(self.originalDirectory):
             fullpath = join(self.originalDirectory, file)

@@ -18,10 +18,10 @@ import console
 class Neuron:
     """ Class that represents a neuron of our network. """
 
-    def __init__(self, size, id):
+    def __init__(self, directory, size, id):
         """ Default constructor. """
         self.size = size
-        self.file = join(configuration.NEURONS_DIRECTORY, configuration.NEURONS_FILE_PREFIX + str(id))
+        self.file = join(directory, configuration.NEURONS_FILE_PREFIX + str(id))
         self.compressedFile = self.file + configuration.COMPRESSION_EXTENSION
 
     def getCompressedFile(self):
@@ -44,13 +44,13 @@ class Neuron:
                 result[j] = result[j] + (vector[i][j] * weights[i][j])
         return result
 
-    def train(self, sample, alpha):
+    def train(self, sample, learningRate):
         """ Train this neuron using the given sample and alpha learning coefficient. """
         output = self.apply(sample[0])
         weights = self.load()
         for i in xrange(len(weights)):
             for j in (0, 1):
-                weights[i][j] = weights[i][j] + (alpha * (sample[1][i][j] - output) * sample[0][i][j])
+                weights[i][j] = weights[i][j] + (learningRate * (sample[1][i][j] - output) * sample[0][i][j])
         self.save(weights)
 
     def save(self, weights):
@@ -73,16 +73,17 @@ class Neuron:
 class NeuronFactory:
     """ A NeuronFactory is in charge of creating Neuron through a pool. """
 
-    def __init__(self, size, lock, source, monitor):
+    def __init__(self, directory, size, lock, source, monitor):
         """ Default constructor. Initializes factory attributes. """
         self.size = size
         self.lock = lock
         self.source = source
         self.monitor = monitor
+        self.directory = directory
 
     def __call__(self, id):
         """ Factory method that creates a neuron of the target size with the given id."""
-        neuron = Neuron(self.size, id)
+        neuron = Neuron(self.directory, self.size, id)
         copyfile(self.source.getCompressedFile() , neuron.getCompressedFile())
         with self.lock:
             self.monitor.next()
@@ -92,17 +93,17 @@ class NeuronFactory:
 class NeuronTrainer:
     """ A NeuronTrainer is in charge of training a given neuron through a pool. """
 
-    def __init__(self, corpus, lock, monitor, alpha):
+    def __init__(self, corpus, lock, monitor, learningRate):
         """ Default constructor. Initializes trainer attributes. """
         self.lock = lock
         self.monitor = monitor
-        self.alpha = alpha
-        self.corpus
+        self.learningRate = learningRate
+        self.corpus = corpus
 
     def __call__(self, neuron):
         """ Training method that applies the given corpus to the given neuron. """
         for sample in self.corpus:
-            neuron.train(sample, self.alpha)
+            neuron.train(sample, self.learningRate)
         with self.lock:
             self.monitor.next()
             time.sleep(0.001)
@@ -110,28 +111,33 @@ class NeuronTrainer:
 class NeuronalNetwork:
     """ Class that represents our neuronal network. """
 
-    def __init__(self, size):
+    def __init__(self, size, directory):
         """ Creates a untrained neuronal network with n neurons. """
-        if not exists(configuration.NEURONS_DIRECTORY):
-            makedirs(configuration.NEURONS_DIRECTORY)
-        self.pool = Pool(configuration.THREAD)
+        self.directory = directory
+        self.pool = Pool()
         self.lock = Manager().Lock()
+        self.size = size
 
     def create(self):
         """ Initializes this neuronal network. """
-        monitor = Bar('Creating neurons', max=size)
-        source = Neuron(size, id)
+        if not exists(self.directory):
+            makedirs(self.directory)
+        monitor = Bar('Creating neurons', max=self.size)
+        source = Neuron(self.size, 0)
         source.reset()
         monitor.next()
-        factory = NeuronFactory(size, self.lock, source, monitor)
-        self.neurons = self.pool.map(factory, xrange(size))
+        factory = NeuronFactory(self.directory, self.size, self.lock, source, monitor)
+        self.neurons = self.pool.map(factory, xrange(self.size))
         self.pool.close()
         self.pool.join()
+        print ''
 
-    def train(self, corpus, alpha):
+    def train(self, corpus, learningRate):
         """ Trains this network using gradient descent. """
+        if not exists(self.directory):
+            raise IOError('Directory %s not found, abort' % self.directory)
         monitor = Bar('Training neurons', max=len(self.neurons))
-        trainer = NeuronTrainer(self.lock, monitor, alpha, corpus)
+        trainer = NeuronTrainer(self.lock, monitor, learningRate, corpus)
         self.pool.apply_async(trainer, self.neurons)
         self.pool.close()
         self.pool.join()

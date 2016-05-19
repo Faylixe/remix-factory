@@ -9,59 +9,65 @@ from corpus import Corpus
 from neuronalnetwork import NeuronalNetwork
 from memento import Memento
 
-def getModel(memento, corpus):
-    if not memento.isNetworkCreated():
-        logging.info('Retrieving maximum vector size from dataset')
-        size = corpus.getVectorSize()
-        logging.info('Neuronal network size : %d' % size)
-        logging.info('Creating empty neuronal network')
-        model = NeuronalNetwork(size)
-        model.create()
-        memento.notifyNetworkCreated()
-        return model
-    else:
-        # TODO : Load model
-        return
+def getCorpus(corpusDirectory):
+    """ Retrieves a Corpus instance from the given directory. """
+    logging.info('Load corpus from directory %s' % corpusDirectory)
+    return Corpus(corpusDirectory)
 
-# TODO : Add memento pattern for saving training step.
-def train(corpusPath, modelPath, memento):
+def create(corpusDirectory, modelDirectory):
+    """ Creates an empty model using the given corpus. """
+    corpus = getCorpus(corpusDirectory)
+    logging.info('Retrieving maximum vector size from dataset')
+    size = corpus.getVectorSize()
+    logging.info('Neuronal network size : %d' % size)
+    logging.info('Creating empty neuronal network')
+    model = NeuronalNetwork(size, modelDirectory)
+    model.create()
+
+def train(corpusDirectory, modelDirectory, batchSize, learningRate):
     """ Train a new model using the given corpus directory and saves it to the given model path. """
-    logging.info('Load corpus from directory %s' % args.dataset)
-    corpus = Corpus(corpusPath)
-    memento.notifyCorpusCreated()
-    model = getModel(memento, corpus)
+    corpus = getCorpus(corpusDirectory)
+    model = NeuronalNetwork(size, modelDirectory)
     logging.info('Start training')
-    n = corpus.startBatch(configuration.BATCH_SIZE)
+    # TODO : Add memento pattern for saving training step
+    if batchSize == None:
+        batchSize = configuration.DEFAULT_BATCH_SIZE
+    if learningRate == None:
+        batchSize = configuration.DEFAULT_LEARNING_RATE
+    n = corpus.startBatch(batchSize)
     for i in xrange(n):
         logging.info('Training over batch #%d' % i)
         batch = corpus.nextBatch()
-        model.train(batch, configuration.ALPHA)
-    logging.info('Saving model to %s' % args.model)
-    model.save(modelPath)
+        model.train(batch, learningRate)
+    logging.info('Training complete')
 
-def create(modelPath, songPath):
+def generate(modelPath, songPath):
     """ Creates a song from the given model and save it. """
-    logging.info('Loading model from file %s' % modelPath)
-    model = NeuronalNetwork.load(modelPath)
-    logging.info('Loading song from file %s' % songPath)
-    original = corpus.load(songPath)
-    logging.info('Applying remix transformation')
-    remixed = model.apply(original)
-    corpus.save(remixed, 'remixed-song.wav') # TODO : Build filename.
+    return
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s', datefmt='%Y-%m-%d %I:%M:%S')
-    # Parse command line parameters.
     parser = argparse.ArgumentParser()
+    parser.add_argument('-c', '--create', help='Creates a new neuronal network ready for training', action='store_true')
     parser.add_argument('-t', '--train', help='Trains a model using a given corpus', action='store_true')
-    parser.add_argument('-c', '--create', help='Creates a remix from the given song using the given model', action='store_true')
-    parser.add_argument('-m', '--model', help='Path of the model file to load or save')
+    parser.add_argument('-r', '--remix', help='Generates a remix from the given song', action='store_true')
+    parser.add_argument('-m', '--model', help='Path of the directory that will contains our model')
     parser.add_argument('-d', '--dataset', help='Path of the corpus directory to use for training the model')
+    parser.add_argument('-b', '--batchSize', help='(optional) Size of the batch to use for training, default value is 10')
+    parser.add_argument('-l', '--learningRate', help='(optional) Learning rate parameter for gradient descent algorithm, default value is 1')
     args = parser.parse_args()
-    # Handles action.
-    if args.train:
-        train(args.dataset, args.model, Memento('memento.mem'))
-    elif args.create:
-        create(args.model) # TODO : Add song path ?.
+    if args.model == None:
+        logging.error('Missing --model parameter, abort')
+    if args.create:
+        if args.corpus == None:
+            logging.error('Missing --corpus parameter, abort')
+        create(args.dataset, args.model)
+    elif args.train:
+        if args.corpus == None:
+            logging.error('Missing --corpus parameter, abort')
+        train(args.dataset, args.model, args.batchSize, args.learningRate)
+    elif args.remix:
+        logging.warning("Not implemented yet")
     else:
+        # TODO : Update message
         logging.error('Action train or create should be provided')
