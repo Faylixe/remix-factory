@@ -4,12 +4,12 @@ import logging
 import numpy
 import pickle
 import time
+import sys
 
 from backports import lzma
-from multiprocessing import Pool, Manager, Lock
+from multiprocessing import Pool, Manager, Lock, Value
 from os import makedirs, remove
 from os.path import join, exists
-from progress.bar import Bar
 from shutil import copyfile
 
 import configuration
@@ -69,15 +69,32 @@ class Neuron:
         remove(self.file)
         return weights
 
-class NeuronFactory:
+class NeuronMonitor:
+    """ Base class for shared neuron processor. """
+
+    def __init__(self, limit, label, manager):
+        """ Default constructor. Initializes counter. """
+        self.counter = manager.Value('i', 0)
+        self.limit = limit
+        self.label = label
+
+    def next(self):
+        """ Increments counter and display progression. """
+        self.counter.value += 1
+        progress = '%s (%d/%d)\r' % (self.label, self.counter.value, self.limit)
+        sys.stdout.write(progress)
+        sys.stdout.flush()
+
+
+class NeuronFactory(NeuronMonitor):
     """ A NeuronFactory is in charge of creating Neuron through a pool. """
 
-    def __init__(self, directory, size, lock, source, monitor):
+    def __init__(self, directory, size, manager, source, limit):
         """ Default constructor. Initializes factory attributes. """
+        NeuronMonitor.__init__(self, limit, "Creating neuron", manager)
         self.size = size
-        self.lock = lock
+        self.lock = manager.Lock()
         self.source = source
-        self.monitor = monitor
         self.directory = directory
 
     def __call__(self, id):
@@ -85,17 +102,17 @@ class NeuronFactory:
         neuron = Neuron(self.directory, self.size, id)
         copyfile(self.source.getCompressedFile() , neuron.getCompressedFile())
         with self.lock:
-            self.monitor.next()
+            self.next()
             time.sleep(0.001)
         return neuron
 
-class NeuronTrainer:
+class NeuronTrainer(NeuronMonitor):
     """ A NeuronTrainer is in charge of training a given neuron through a pool. """
 
-    def __init__(self, corpus, size, window, lock, monitor, learningRate):
+    def __init__(self, corpus, size, window, manager, learningRate):
         """ Default constructor. Initializes trainer attributes. """
-        self.lock = lock
-        self.monitor = monitor
+        NeuronMonitor.__init__(self, size, "Training neuron", manager)
+        self.lock = manager.Lock()
         self.learningRate = learningRate
         self.corpus = corpus
         self.size = size
@@ -116,7 +133,7 @@ class NeuronTrainer:
                     subvector = vector[i:i + self.window]
                 neuron.train(subvector, self.learningRate)
         with self.lock:
-            self.monitor.next()
+            self.next()
             time.sleep(0.001)
 
 class NeuronalNetwork:
@@ -126,7 +143,7 @@ class NeuronalNetwork:
         """ Creates a untrained neuronal network with n neurons. """
         self.directory = directory
         self.pool = Pool(thread)
-        self.lock = Manager().Lock()
+        self.manager = Manager()
         self.size = size
         self.window = window
 
@@ -134,11 +151,9 @@ class NeuronalNetwork:
         """ Initializes this neuronal network. """
         if not exists(self.directory):
             makedirs(self.directory)
-        monitor = Bar('Creating neurons', max=self.size)
         source = Neuron(self.directory, self.window, 'source')
         source.reset()
-        monitor.next()
-        factory = NeuronFactory(self.directory, self.window, self.lock, source, monitor)
+        factory = NeuronFactory(self.directory, self.window, self.manager, source, self.size)
         self.neurons = self.pool.map(factory, xrange(self.size))
         self.pool.close()
         self.pool.join()
@@ -150,8 +165,7 @@ class NeuronalNetwork:
         """ Trains this network using gradient descent. """
         if not exists(self.directory):
             raise IOError('Directory %s not found, abort' % self.directory)
-        monitor = Bar('Training neurons', max=len(self.neurons))
-        trainer = NeuronTrainer(corpus, self.size, self.window, self.lock, monitor, learningRate)
+        trainer = NeuronTrainer(corpus, self.size, self.window, self.manager, learningRate)
         self.pool.apply_async(trainer, self.neurons)
         self.pool.close()
         self.pool.join()
