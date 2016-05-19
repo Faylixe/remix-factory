@@ -44,13 +44,13 @@ class Neuron:
                 result[j] = result[j] + (vector[i][j] * weights[i][j])
         return result
 
-    def train(self, sample, learningRate):
+    def train(self, vector, learningRate):
         """ Train this neuron using the given sample and alpha learning coefficient. """
-        output = self.apply(sample[0])
+        output = self.apply(vector[0])
         weights = self.load()
         for i in xrange(len(weights)):
             for j in (0, 1):
-                weights[i][j] = weights[i][j] + (learningRate * (sample[1][i][j] - output) * sample[0][i][j])
+                weights[i][j] = weights[i][j] + (learningRate * (vector[1][i][j] - output) * vector[0][i][j])
         self.save(weights)
 
     def save(self, weights):
@@ -93,17 +93,29 @@ class NeuronFactory:
 class NeuronTrainer:
     """ A NeuronTrainer is in charge of training a given neuron through a pool. """
 
-    def __init__(self, corpus, lock, monitor, learningRate):
+    def __init__(self, corpus, size, window, lock, monitor, learningRate):
         """ Default constructor. Initializes trainer attributes. """
         self.lock = lock
         self.monitor = monitor
         self.learningRate = learningRate
         self.corpus = corpus
+        self.size = size
+        self.window = window
 
     def __call__(self, neuron):
         """ Training method that applies the given corpus to the given neuron. """
-        for sample in self.corpus:
-            neuron.train(sample, self.learningRate)
+        for vector in self.corpus:
+            if self.size == self.window:
+                neuron.train(vector, self.learningRate)
+            else:
+                subvector = None
+                if i < self.window:
+                    subvector = vector[0:self.window]
+                elif i > self.size - self.window:
+                    subvector = vector[self.size - self.window:]
+                else:
+                    subvector = vector[i:i + self.window]
+                neuron.train(subvector, self.learningRate)
         with self.lock:
             self.monitor.next()
             time.sleep(0.001)
@@ -111,22 +123,23 @@ class NeuronTrainer:
 class NeuronalNetwork:
     """ Class that represents our neuronal network. """
 
-    def __init__(self, size, directory, thread):
+    def __init__(self, size, directory, window, thread):
         """ Creates a untrained neuronal network with n neurons. """
         self.directory = directory
         self.pool = Pool(thread)
         self.lock = Manager().Lock()
         self.size = size
+        self.window = window
 
     def create(self):
         """ Initializes this neuronal network. """
         if not exists(self.directory):
             makedirs(self.directory)
         monitor = Bar('Creating neurons', max=self.size)
-        source = Neuron(self.directory, self.size, 'source')
+        source = Neuron(self.directory, self.window, 'source')
         source.reset()
         monitor.next()
-        factory = NeuronFactory(self.directory, self.size, self.lock, source, monitor)
+        factory = NeuronFactory(self.directory, self.window, self.lock, source, monitor)
         self.neurons = self.pool.map(factory, xrange(self.size))
         self.pool.close()
         self.pool.join()
@@ -139,7 +152,7 @@ class NeuronalNetwork:
         if not exists(self.directory):
             raise IOError('Directory %s not found, abort' % self.directory)
         monitor = Bar('Training neurons', max=len(self.neurons))
-        trainer = NeuronTrainer(self.lock, monitor, learningRate, corpus)
+        trainer = NeuronTrainer(corpus, self.size, self.window, self.lock, monitor, learningRate)
         self.pool.apply_async(trainer, self.neurons)
         self.pool.close()
         self.pool.join()
@@ -155,7 +168,17 @@ class NeuronalNetwork:
         monitor = Bar('Creating remix', max=len(size))
         result = numpy.empty(size, dtype='int16')
         for i in xrange(size):
-            result[i] = self.neurons[i].apply(vector)
+            if self.size == self.window:
+                result[i] = self.neurons[i].apply(vector)
+            else:
+                subvector = None
+                if i < self.window:
+                    subvector = vector[0:self.window]
+                elif i > self.size - self.window:
+                    subvector = vector[self.size - self.window:]
+                else:
+                    subvector = vector[i:i + self.window]
+                result[i] = self.neurons[i].apply(subvector)
             monitor.next()
         return result
 

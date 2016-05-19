@@ -18,25 +18,29 @@ def getVectorSize(corpus):
     logging.info('Retrieving maximum vector size from dataset')
     return corpus.getVectorSize()
 
-def create(corpusDirectory, modelDirectory, thread):
+def create(corpusDirectory, modelDirectory, window, thread):
     """ Creates an empty model using the given corpus. """
     corpus = getCorpus(corpusDirectory)
     size = getVectorSize(corpus)
     logging.info('Neuronal network size : %d' % size)
-    logging.info('Creating empty neuronal network')
-    model = NeuronalNetwork(size, modelDirectory, thread)
+    if window == None:
+        window = size
+    logging.info('Creating empty neuronal network with window size %d' % window)
+    model = NeuronalNetwork(size, modelDirectory, window, thread)
     model.create()
 
-def train(corpusDirectory, modelDirectory, batchSize, learningRate, thread):
+def train(corpusDirectory, modelDirectory, batchSize, learningRate, window, thread):
     """ Train a new model using the given corpus directory and saves it to the given model path. """
     corpus = getCorpus(corpusDirectory)
     size = getVectorSize(corpus)
-    model = NeuronalNetwork(size, modelDirectory, thread)
+    model = NeuronalNetwork(size, modelDirectory, window, thread)
     logging.info('Start training')
     if batchSize == None:
         batchSize = configuration.DEFAULT_BATCH_SIZE
     if learningRate == None:
         batchSize = configuration.DEFAULT_LEARNING_RATE
+    if window == None:
+        window = size
     n = corpus.startBatch(batchSize)
     for i in xrange(n):
         logging.info('Training over batch #%d' % i)
@@ -53,7 +57,7 @@ def generate(modelDirectory, songPath, remixPath):
     logging.info('Applying neuronal network model' % songPath)
     remixed = model.apply(vector)
     logging.info('Saving created song to %s' % remixPath)
-    wavfile.write(remixPath, rate, remixed) # TODO : Get rate ? 
+    wavfile.write(remixPath, rate, remixed) # TODO : Get rate ?
 
 def check(args, key):
     """ Ensure parameter denoted from the given key exist in the args dictionary"""
@@ -74,14 +78,15 @@ if __name__ == '__main__':
     parser.add_argument('-b', '--batchSize', type=int, help='(optional) Size of the batch to use for training, default value is 10')
     parser.add_argument('-l', '--learningRate', help='(optional) Learning rate parameter for gradient descent algorithm, default value is 1')
     parser.add_argument('-p', '--thread', type=int, help='(optional) Number of thread to use, if not specified maximum number will be used')
+    parser.add_argument('-w', '--window', type=int, help='(optional) Size of the neuronal window to use, if not specified maximum number will be used')
     args = parser.parse_args()
     check(args, 'model')
     if args.create:
         check(args, 'dataset')
-        create(args.dataset, args.model, args.thread)
+        create(args.dataset, args.model, args.thread, args.window)
     elif args.train:
         check(args, 'dataset')
-        train(args.dataset, args.model, args.batchSize, args.learningRate, args.thread)
+        train(args.dataset, args.model, args.batchSize, args.learningRate, args.window, args.thread)
     elif args.remix:
         check(args, 'song')
         check(args, 'output')
