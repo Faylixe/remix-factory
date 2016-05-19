@@ -67,32 +67,27 @@ class Corpus:
         self.current = self.current + 1
         return batch
 
-# TODO : Ensure rate is equals for all songs.
-def load(file):
-    """ Loads the given wave file numerical values. """
-    extension = file[-4:]
-    if not exists(file) or not extension in SUPPORTED_EXTENSION:
-        raise IOError('%s file format is not supported' % extension)
-    if extension != '.wav':
-        file = convert(file)
-    _, data = wavfile.read(file)
-    return data
+    # TODO : Ensure rate is equals for all songs.
+    def load(file):
+        """ Loads the given wave file numerical values. """
+        extension = file[-4:]
+        if not exists(file) or not extension in SUPPORTED_EXTENSION:
+            raise IOError('%s file format is not supported' % extension)
+        if extension != '.wav':
+            file = convert(file)
+        _, data = wavfile.read(file)
+        return data
 
-def save(vector, file):
-    """ Saves the given vector to the given file. """
-    # TODO : implement
-    return
-
-def convert(file):
-    """ Convert the given file to a valid wav format and returns the path of the converted file. """
-    if not exists(configuration.CONVERTION_DIRECTORY):
-        makedirs(configuration.CONVERTION_DIRECTORY)
-    extension = file[-4:]
-    if not exists(file) or not extension in SUPPORTED_EXTENSION:
-        raise IOError('%s file format is not supported' % extension)
-    filename = splitext(basename(file))[0]
-    path = join(configuration.CONVERTION_DIRECTORY, filename + '.wav')
-    if (not exists(path)):
-        logging.info("Converting file %s" % file)
-        CONVERTERS[extension](file).export(path, format='wav')
-    return path
+    def convert(file):
+        """ Convert the given file to a valid wav format and returns the path of the converted file. """
+        if not exists(configuration.CONVERTION_DIRECTORY):
+            makedirs(configuration.CONVERTION_DIRECTORY)
+        extension = file[-4:]
+        if not exists(file) or not extension in SUPPORTED_EXTENSION:
+            raise IOError('%s file format is not supported' % extension)
+        filename = splitext(basename(file))[0]
+        path = join(configuration.CONVERTION_DIRECTORY, filename + '.wav')
+        if (not exists(path)):
+            logging.info("Converting file %s" % file)
+            CONVERTERS[extension](file).export(path, format='wav')
+        return path

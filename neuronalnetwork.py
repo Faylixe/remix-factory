@@ -130,6 +130,8 @@ class NeuronalNetwork:
         self.neurons = self.pool.map(factory, xrange(self.size))
         self.pool.close()
         self.pool.join()
+        with open(join(self.directory, configuration.MODEL_METADATA), 'w') as metadata:
+            metadata.write(self.size)
         print ''
 
     def train(self, corpus, learningRate):
@@ -150,12 +152,19 @@ class NeuronalNetwork:
     def apply(self, vector):
         """ Transforms the given vector by applying each neuron to it. """
         size = len(self.neurons)
+        monitor = Bar('Creating remix', max=len(size))
         result = numpy.empty(size, dtype='int16')
-        for i in xrange(n):
+        for i in xrange(size):
             result[i] = self.neurons[i].apply(vector)
+            monitor.next()
         return result
 
     def load(path):
         """ Loads the neuronal network from the file denoted by the given path. """
         stream = open(path, 'rb')
         return pickle.load(stream)
+
+    def getSize(directory):
+        """ Retrieves and returns size of model denoted by the given directory. """
+        with open(join(directory, configuration.MODEL_METADATA), 'r') as file:
+            return int(next(file))

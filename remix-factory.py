@@ -2,23 +2,26 @@
 
 import argparse
 import logging
+from sys import exit
 
 import configuration
-
 from corpus import Corpus
 from neuronalnetwork import NeuronalNetwork
-from memento import Memento
 
 def getCorpus(corpusDirectory):
     """ Retrieves a Corpus instance from the given directory. """
     logging.info('Load corpus from directory %s' % corpusDirectory)
     return Corpus(corpusDirectory)
 
+def getVectorSize(corpus):
+    """ Retrieves maximum vector size from the given corpus. """
+    logging.info('Retrieving maximum vector size from dataset')
+    return corpus.getVectorSize()
+
 def create(corpusDirectory, modelDirectory, thread):
     """ Creates an empty model using the given corpus. """
     corpus = getCorpus(corpusDirectory)
-    logging.info('Retrieving maximum vector size from dataset')
-    size = corpus.getVectorSize()
+    size = getVectorSize(corpus)
     logging.info('Neuronal network size : %d' % size)
     logging.info('Creating empty neuronal network')
     model = NeuronalNetwork(size, modelDirectory, thread)
@@ -27,9 +30,9 @@ def create(corpusDirectory, modelDirectory, thread):
 def train(corpusDirectory, modelDirectory, batchSize, learningRate, thread):
     """ Train a new model using the given corpus directory and saves it to the given model path. """
     corpus = getCorpus(corpusDirectory)
+    size = getVectorSize(corpus)
     model = NeuronalNetwork(size, modelDirectory, thread)
     logging.info('Start training')
-    # TODO : Add memento pattern for saving training step
     if batchSize == None:
         batchSize = configuration.DEFAULT_BATCH_SIZE
     if learningRate == None:
@@ -41,9 +44,22 @@ def train(corpusDirectory, modelDirectory, batchSize, learningRate, thread):
         model.train(batch, learningRate)
     logging.info('Training complete')
 
-def generate(modelPath, songPath):
+def generate(modelDirectory, songPath, remixPath):
     """ Creates a song from the given model and save it. """
-    return
+    size = NeuronalNetwork.getSize(modelDirectory)
+    model = NeuronalNetwork(size, modelDirectory, thread)
+    logging.info('Loading %s as numerical vector' % songPath)
+    vector = Corpus.load(songPath)
+    logging.info('Applying neuronal network model' % songPath)
+    remixed = model.apply(vector)
+    logging.info('Saving created song to %s' % remixPath)
+    wavfile.write(remixPath, rate, remixed) # TODO : Get rate ? 
+
+def check(args, key):
+    """ Ensure parameter denoted from the given key exist in the args dictionary"""
+    if args[key] == None:
+        logging.error('Missing --%s parameter, abort' % key)
+        exit(2)
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s', datefmt='%Y-%m-%d %I:%M:%S')
@@ -53,22 +69,24 @@ if __name__ == '__main__':
     parser.add_argument('-r', '--remix', help='Generates a remix from the given song', action='store_true')
     parser.add_argument('-m', '--model', help='Path of the directory that will contains our model')
     parser.add_argument('-d', '--dataset', help='Path of the corpus directory to use for training the model')
+    parser.add_argument('-s', '--song', help='Path of the song file to create remix for')
+    parser.add_argument('-o', '--output', help='Path of the output remixed song file to create')
     parser.add_argument('-b', '--batchSize', type=int, help='(optional) Size of the batch to use for training, default value is 10')
     parser.add_argument('-l', '--learningRate', help='(optional) Learning rate parameter for gradient descent algorithm, default value is 1')
-    parser.add_argument('-p', '--thread', type=int, help='(optional) Number of thread to use, if not specified maximum number will be used.')
+    parser.add_argument('-p', '--thread', type=int, help='(optional) Number of thread to use, if not specified maximum number will be used')
     args = parser.parse_args()
-    if args.model == None:
-        logging.error('Missing --model parameter, abort')
+    check(args, 'model')
     if args.create:
-        if args.dataset == None:
-            logging.error('Missing --corpus parameter, abort')
+        check(args, 'dataset')
         create(args.dataset, args.model, args.thread)
     elif args.train:
-        if args.dataset == None:
-            logging.error('Missing --corpus parameter, abort')
+        check(args, 'dataset')
         train(args.dataset, args.model, args.batchSize, args.learningRate, args.thread)
     elif args.remix:
-        logging.warning("Not implemented yet")
+        check(args, 'song')
+        check(args, 'output')
+        generate(args.model, args.song, args.output)
     else:
-        # TODO : Update message
-        logging.error('Action train or create should be provided')
+        logging.error('Missing action parameter')
+        logging.error('--create, --train, or --remix action should be provided, abort')
+        exit(2)
