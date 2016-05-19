@@ -111,14 +111,14 @@ class NeuronTrainer:
 class NeuronalNetwork:
     """ Class that represents our neuronal network. """
 
-    def __init__(self, size, directory):
+    def __init__(self, size, directory, thread):
         """ Creates a untrained neuronal network with n neurons. """
         self.directory = directory
-        self.pool = Pool()
+        self.pool = Pool(thread)
         self.lock = Manager().Lock()
         self.size = size
 
-    def create(self):
+    def create(self, thread):
         """ Initializes this neuronal network. """
         if not exists(self.directory):
             makedirs(self.directory)

@@ -76,7 +76,7 @@ def load(file):
     if extension != '.wav':
         file = convert(file)
     _, data = wavfile.read(file)
-    return data# .astype('float32') / 32767.0 # TODO : Ensure normalization process is valid.
+    return data
 
 def save(vector, file):
     """ Saves the given vector to the given file. """
