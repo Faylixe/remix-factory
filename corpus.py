@@ -87,13 +87,9 @@ class Corpus:
         for i in xrange(self.batchSize):
             index = self.current + i
             if index < len(self.files):
-                original = load(self.files[index])
-                remixed = load(join(self.remixedDirectory, basename(original)))
-                # Normalizes vector using right zero padding.
-                if len(original) < self.size:
-                    original = original.resize(self.size)
-                if len(remixed) < self.size:
-                    remixed = remixed.resize(self.size)
+                file = self.files[index]
+                original = load(file)
+                remixed = load(join(self.remixedDirectory, basename(file)))
                 batch.append((original, remixed))
         self.current = self.current + 1
         return batch

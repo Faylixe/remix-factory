@@ -29,7 +29,7 @@ class Neuron:
 
     def reset(self, value=1):
         """ Initializes weight list with the given value. """
-        pattern = numpy.array([value, value], dtype='int16')
+        pattern = numpy.array([value, value], dtype='float64')
         weights = numpy.tile(pattern, [self.size, 1])
         # TODO : Add activation weight ?
         self.save(weights)
@@ -43,13 +43,19 @@ class Neuron:
                 result[j] = result[j] + (vector[i][j] * weights[i][j])
         return result
 
-    def train(self, vector, learningRate):
+    def train(self, vectors, learningRate):
         """ Train this neuron using the given sample and alpha learning coefficient. """
-        output = self.apply(vector[0])
+        output = self.apply(vectors[0])
         weights = self.load()
-        for i in xrange(len(weights)):
+        for i in xrange(max(len(original), len(remixed))):
             for j in (0, 1):
-                weights[i][j] = weights[i][j] + (learningRate * (vector[1][i][j] - output) * vector[0][i][j])
+                originalValue = [0, 0]
+                remixedValue = [0, 0]
+                if len(vectors[0]) < i:
+                    originalValue = vectors[0][i]
+                if len(vectors[1]) < i:
+                    remixedValue = vectors[1][i]
+                weights[i][j] = weights[i][j] + (learningRate * (remixedValue[j] - output) * originalValue[j])
         self.save(weights)
 
     def save(self, weights):
@@ -89,18 +95,20 @@ class NeuronMonitor:
 class NeuronFactory(NeuronMonitor):
     """ A NeuronFactory is in charge of creating Neuron through a pool. """
 
-    def __init__(self, directory, size, manager, source, limit):
+    def __init__(self, directory, size, manager, source, limit, lazy=False):
         """ Default constructor. Initializes factory attributes. """
-        NeuronMonitor.__init__(self, limit, "Creating neuron", manager)
+        NeuronMonitor.__init__(self, limit, "Loading neuron" if lazy else "Creating neuron", manager)
         self.size = size
         self.lock = manager.Lock()
         self.source = source
         self.directory = directory
+        self.lazy = lazy
 
     def __call__(self, id):
         """ Factory method that creates a neuron of the target size with the given id."""
         neuron = Neuron(self.directory, self.size, id)
-        copyfile(self.source.getCompressedFile() , neuron.getCompressedFile())
+        if not self.lazy:
+            copyfile(self.source.getCompressedFile() , neuron.getCompressedFile())
         with self.lock:
             self.next()
             time.sleep(0.001)
@@ -147,24 +155,31 @@ class NeuronalNetwork:
         self.size = size
         self.window = window
 
-    def create(self):
+    def create(self, lazy=False):
         """ Initializes this neuronal network. """
         if not exists(self.directory):
-            makedirs(self.directory)
+            if lazy:
+                raise IOError('%s directory do not exists' % self.directory)
+            else:
+                makedirs(self.directory)
         source = Neuron(self.directory, self.window, 'source')
-        source.reset()
-        factory = NeuronFactory(self.directory, self.window, self.manager, source, self.size)
+        if not lazy:
+            source.reset()
+        factory = NeuronFactory(self.directory, self.window, self.manager, source, self.size, lazy)
         self.neurons = self.pool.map(factory, xrange(self.size))
         self.pool.close()
         self.pool.join()
-        with open(join(self.directory, configuration.MODEL_METADATA), 'w') as metadata:
-            metadata.write(self.size)
+        if not lazy:
+            with open(join(self.directory, configuration.MODEL_METADATA), 'w') as metadata:
+                metadata.write(str(self.size))
         print ''
 
     def train(self, corpus, learningRate):
         """ Trains this network using gradient descent. """
         if not exists(self.directory):
             raise IOError('Directory %s not found, abort' % self.directory)
+        logging.info('Loading %s neurons from %s' % (self.size, self.directory))
+        self.create(True)
         trainer = NeuronTrainer(corpus, self.size, self.window, self.manager, learningRate)
         self.pool.apply_async(trainer, self.neurons)
         self.pool.close()

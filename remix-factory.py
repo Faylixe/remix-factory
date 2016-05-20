@@ -8,32 +8,18 @@ import configuration
 from corpus import Corpus, load
 from neuronalnetwork import NeuronalNetwork
 
-def getCorpus(corpusDirectory):
-    """ Retrieves a Corpus instance from the given directory. """
+def train(corpusDirectory, modelDirectory, batchSize, learningRate, window, thread):
+    """ Train a new model using the given corpus directory and saves it to the given model path. """
     logging.info('Load corpus from directory %s' % corpusDirectory)
-    return Corpus(corpusDirectory)
-
-def getVectorSize(corpus):
-    """ Retrieves maximum vector size from the given corpus. """
+    corpus = Corpus(corpusDirectory)
     logging.info('Retrieving maximum vector size from dataset')
-    return corpus.getVectorSize()
-
-def create(corpusDirectory, modelDirectory, window, thread):
-    """ Creates an empty model using the given corpus. """
-    corpus = getCorpus(corpusDirectory)
-    size = getVectorSize(corpus)
+    size = corpus.getVectorSize()
     logging.info('Neuronal network size : %d' % size)
     if window == None:
         window = size
     logging.info('Creating empty neuronal network with window size %d' % window)
     model = NeuronalNetwork(size, modelDirectory, window, thread)
     model.create()
-
-def train(corpusDirectory, modelDirectory, batchSize, learningRate, window, thread):
-    """ Train a new model using the given corpus directory and saves it to the given model path. """
-    corpus = getCorpus(corpusDirectory)
-    size = getVectorSize(corpus)
-    model = NeuronalNetwork(size, modelDirectory, window, thread)
     logging.info('Start training')
     if batchSize == None:
         batchSize = configuration.DEFAULT_BATCH_SIZE
@@ -52,6 +38,8 @@ def generate(modelDirectory, songPath, remixPath):
     """ Creates a song from the given model and save it. """
     size = NeuronalNetwork.getSize(modelDirectory)
     model = NeuronalNetwork(size, modelDirectory, thread)
+    logging.info('Loading neuronal network from directory %s' % modelDirectory)
+    model.create(lazy=True)
     logging.info('Loading %s as numerical vector' % songPath)
     vector = load(songPath)
     logging.info('Applying neuronal network model' % songPath)
@@ -81,12 +69,12 @@ if __name__ == '__main__':
     parser.add_argument('-w', '--window', type=int, help='(optional) Size of the neuronal window to use, if not specified maximum number will be used')
     args = parser.parse_args()
     check(args, 'model')
-    if args.create:
-        check(args, 'dataset')
-        create(args.dataset, args.model, args.window, args.thread)
-    elif args.train:
+    if args.train:
         check(args, 'dataset')
         train(args.dataset, args.model, args.batchSize, args.learningRate, args.window, args.thread)
+    elif args.create and not args.train:
+        check(args, 'dataset')
+        create(args.dataset, args.model, args.window, args.thread)
     elif args.remix:
         check(args, 'song')
         check(args, 'output')
