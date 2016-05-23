@@ -150,7 +150,7 @@ class NeuronalNetwork:
     def __init__(self, size, directory, window, thread):
         """ Creates a untrained neuronal network with n neurons. """
         self.directory = directory
-        self.pool = Pool(thread)
+        self.thread = thread
         self.manager = Manager()
         self.size = size
         self.window = window
@@ -166,24 +166,25 @@ class NeuronalNetwork:
         if not lazy:
             source.reset()
         factory = NeuronFactory(self.directory, self.window, self.manager, source, self.size, lazy)
+        pool = Pool(self.thread)
         self.neurons = self.pool.map(factory, xrange(self.size))
-        self.pool.close()
-        self.pool.join()
+        pool.close()
+        pool.join()
         if not lazy:
             with open(join(self.directory, configuration.MODEL_METADATA), 'w') as metadata:
                 metadata.write(str(self.size))
+                # TODO : Consider writing window size too.
         print ''
 
     def train(self, corpus, learningRate):
         """ Trains this network using gradient descent. """
         if not exists(self.directory):
             raise IOError('Directory %s not found, abort' % self.directory)
-        logging.info('Loading %s neurons from %s' % (self.size, self.directory))
-        self.create(True)
         trainer = NeuronTrainer(corpus, self.size, self.window, self.manager, learningRate)
-        self.pool.apply_async(trainer, self.neurons)
-        self.pool.close()
-        self.pool.join()
+        pool = Pool(self.thread)
+        pool.apply_async(trainer, self.neurons)
+        pool.close()
+        pool.join()
 
     def save(self, path):
         """ Saves this neuronal network to the file denoted by the given path. """
@@ -192,6 +193,9 @@ class NeuronalNetwork:
 
     def apply(self, vector):
         """ Transforms the given vector by applying each neuron to it. """
+        # TODO : Apply model loading.
+        #logging.info('Loading %s neurons from %s' % (self.size, self.directory))
+        #self.create(True)
         size = len(self.neurons)
         monitor = Bar('Creating remix', max=len(size))
         result = numpy.empty(size, dtype='int16')
