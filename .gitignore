@@ -1,5 +1,5 @@
 /corpus/
-/*.pyc
+*.pyc
 /neurons/
 /*.mem
 /train.sh
