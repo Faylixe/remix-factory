@@ -6,7 +6,7 @@ from backports import lzma
 from os import makedirs, remove
 from os.path import join, exists
 
-from model import NEURON_EXTENSION, NEURON_PREFIX
+from model.constants import *
 
 class Neuron:
     """Class that represents a neuron of our network.
