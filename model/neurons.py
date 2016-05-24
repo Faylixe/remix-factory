@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import neuron
+from model.neuron import Neuron
 
 class Neurons:
     """Neurons is a Neuron cache iterator.
@@ -28,19 +28,19 @@ class Neurons:
         :returns: Reference to this instance or cache if all neurons are created.
         """
         if self.current == self.limit:
-            return self.neurons
+            return self.neurons.__iter__()
         return self
 
     def next(self):
-        """ Retrieves next neuron and returns it.
+        """Retrieves next neuron and returns it.
 
         Created neuron will be added to the local cache.
 
         :returns: Retrieves neuron instance.
         """
-        if self.current >= limit:
+        if self.current >= self.limit:
             raise StopIteration()
         neuron = Neuron(self.directory, self.size, self.current)
-        neurons.append(neuron)
+        self.neurons.append(neuron)
         self.current += 1
         return neuron

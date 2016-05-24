@@ -7,4 +7,4 @@
 NEURON_EXTENSION = ".cbn"
 
 """ Compressed Binary Neuron file prefix. """
-NEURONS_PREFIX = 'neuron-'
+NEURON_PREFIX = 'neuron-'
