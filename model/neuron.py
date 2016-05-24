@@ -6,6 +6,8 @@ from backports import lzma
 from os import makedirs, remove
 from os.path import join, exists
 
+from model import NEURON_EXTENSION, NEURON_PREFIX
+
 class Neuron:
     """Class that represents a neuron of our network.
 
@@ -14,7 +16,7 @@ class Neuron:
     consists in a serialized numpy vector compressed using LZMA.
 
     All operations on this neurons will performs a loading then a saving of it
-    internal state. 
+    internal state.
     """
 
     def __init__(self, directory, size, id):
@@ -27,8 +29,8 @@ class Neuron:
         if not exists(directory):
             makedirs(directory)
         self.size = size
-        self.file = join(directory, configuration.NEURONS_FILE_PREFIX + str(id))
-        self.compressedFile = self.file + configuration.COMPRESSION_EXTENSION
+        self.file = join(directory, NEURON_PREFIX + str(id))
+        self.compressedFile = self.file + NEURON_EXTENSION
 
     def getCompressedFile(self):
         """Getter for compressed file path.
