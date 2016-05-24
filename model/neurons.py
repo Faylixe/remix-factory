@@ -20,7 +20,6 @@ class Neurons:
         self.neurons = []
         self.size = size
         self.limit = limit
-        self.lazy = lazy
         self.current = 0
 
     def __iter__(self):
