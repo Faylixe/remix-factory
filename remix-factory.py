@@ -6,7 +6,7 @@ from sys import exit
 
 import configuration
 from corpus import Corpus, load
-from neuronalnetwork import NeuronalNetwork
+from neuronalnetwork import NeuronalNetwork, getSize
 
 def train(corpusDirectory, modelDirectory, batchSize, learningRate, window, thread):
     """ Train a new model using the given corpus directory and saves it to the given model path. """
@@ -24,7 +24,7 @@ def train(corpusDirectory, modelDirectory, batchSize, learningRate, window, thre
     if batchSize == None:
         batchSize = configuration.DEFAULT_BATCH_SIZE
     if learningRate == None:
-        batchSize = configuration.DEFAULT_LEARNING_RATE
+        learningRate = configuration.DEFAULT_LEARNING_RATE
     if window == None:
         window = size
     n = corpus.startBatch(batchSize)
@@ -36,13 +36,13 @@ def train(corpusDirectory, modelDirectory, batchSize, learningRate, window, thre
 
 def generate(modelDirectory, songPath, remixPath):
     """ Creates a song from the given model and save it. """
-    size = NeuronalNetwork.getSize(modelDirectory)
-    model = NeuronalNetwork(size, modelDirectory, thread)
+    size = getSize(modelDirectory)
+    model = NeuronalNetwork(size, modelDirectory, 20000, 8)
     logging.info('Loading neuronal network from directory %s' % modelDirectory)
     model.create(lazy=True)
     logging.info('Loading %s as numerical vector' % songPath)
     vector = load(songPath)
-    logging.info('Applying neuronal network model' % songPath)
+    logging.info('Applying neuronal network model to %s' % songPath)
     remixed = model.apply(vector)
     logging.info('Saving created song to %s' % remixPath)
     wavfile.write(remixPath, 44100, remixed) # TODO : Get rate ?

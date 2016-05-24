@@ -167,7 +167,7 @@ class NeuronalNetwork:
             source.reset()
         factory = NeuronFactory(self.directory, self.window, self.manager, source, self.size, lazy)
         pool = Pool(self.thread)
-        self.neurons = self.pool.map(factory, xrange(self.size))
+        self.neurons = pool.map(factory, xrange(self.size))
         pool.close()
         pool.join()
         if not lazy:
@@ -219,7 +219,7 @@ class NeuronalNetwork:
         stream = open(path, 'rb')
         return pickle.load(stream)
 
-    def getSize(directory):
-        """ Retrieves and returns size of model denoted by the given directory. """
-        with open(join(directory, configuration.MODEL_METADATA), 'r') as file:
-            return int(next(file))
+def getSize(directory):
+    """ Retrieves and returns size of model denoted by the given directory. """
+    with open(join(directory, configuration.MODEL_METADATA), 'r') as file:
+        return int(next(file))
