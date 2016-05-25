@@ -4,51 +4,105 @@ import argparse
 import logging
 from sys import exit
 
-import configuration
-from corpus import Corpus, load
-from neuronalnetwork import NeuronalNetwork, getSize
+from dataset.batchiterator import BatchIterator
+from model.neuronalnetwork import NeuronalNetwork
 
-def train(corpusDirectory, modelDirectory, batchSize, learningRate, window, thread):
-    """ Train a new model using the given corpus directory and saves it to the given model path. """
-    logging.info('Load corpus from directory %s' % corpusDirectory)
-    corpus = Corpus(corpusDirectory)
+""" Default size for the batch size. """
+DEFAULT_BATCH_SIZE = 10
+
+""" Default learning rate value. """
+DEFAULT_LEARNING_RATE = 1
+
+def getDataset(datasetDirectory):
+    """Creates and returns dataset from the given directory.
+
+    :returns: Created dataset instance as BatchIterator object.
+    """
+    logging.info('Load dataset from directory %s' % datasetDirectory)
+    return BatchIterator(datasetDirectory)
+
+def create(datasetDirectory, modelDirectory, window, thread):
+    """Creates empty neuronal network using given parameters.
+
+    :param datasetDirectory: Path of the directory to extract dataset from.
+    :param modelDirectory: Path of the directory to save built model in.
+    :param window: Window size to use for each neuron.
+    :param thread: Number of thread to use for creating model.
+    :returns: Loaded dataset and created model.
+    """
+    dataset = getDataset(datasetDirectory)
     logging.info('Retrieving maximum vector size from dataset')
-    size = corpus.getVectorSize()
+    size = dataset.getVectorSize()
     logging.info('Neuronal network size : %d' % size)
+    model = NeuronalNetwork(modelDirectory, size, window)
     if window == None:
         window = size
     logging.info('Creating empty neuronal network with window size %d' % window)
-    model = NeuronalNetwork(size, modelDirectory, window, thread)
-    model.create()
-    logging.info('Start training')
+    model.create(thread)
+    model.save()
+    return dataset, model
+
+def prepare(datasetDirectory, modelDirectory, window, thread, shouldCreate):
+    """Prepares training by loading dataset, and model.
+
+    :param datasetDirectory: Path of the directory to extract dataset from.
+    :param modelDirectory: Path of the directory to save built model in.
+    :param window: Window size to use for each neuron.
+    :param thread: Number of thread to use for creating model.
+    :param shouldCreate: Boolean flag that indicates if model should be created or loaded.
+    :returns: Dataset and Model to use for training.
+    """
+    if shouldCreate:
+        return create(datasetDirectory, modelDirectory, window, thread)
+    return getDataset(datasetDirectory), NeuronalNetwork.load(modelDirectory)
+
+def train(datasetDirectory, modelDirectory, batchSize, learningRate, window, thread, shouldCreate):
+    """ Performs a training step over the given model.
+
+    Model could be created or simply loaded depending of the shouldCreate flag.
+
+    :param datasetDirectory: Path of the directory to extract dataset from.
+    :param modelDirectory: Path of the directory to save / load built model in.
+    :param batchSize: (Optional) Size for batch (default to 10)
+    :param learningRate: (Optional) Learning rate value (default to 1)
+    :param window: Window size to use for each neuron.
+    :param thread: Number of thread to use for creating model.
+    :param shouldCreate: Boolean flag that indicates if model should be created or loaded.
+    """
+    dataset, model = prepare(datasetDirectory, modelDirectory, window, thread, shouldCreate)
     if batchSize == None:
-        batchSize = configuration.DEFAULT_BATCH_SIZE
+        batchSize = DEFAULT_BATCH_SIZE
     if learningRate == None:
-        learningRate = configuration.DEFAULT_LEARNING_RATE
-    if window == None:
-        window = size
-    n = corpus.startBatch(batchSize)
-    for i in xrange(n):
+        learningRate = DEFAULT_LEARNING_RATE
+    i = 0
+    for batch in dataset:
         logging.info('Training over batch #%d' % i)
-        batch = corpus.nextBatch()
         model.train(batch, learningRate)
-    logging.info('Training complete')
+        i += 1
+    logging.info('Training step complete')
 
 def generate(modelDirectory, songPath, remixPath):
-    """ Creates a song from the given model and save it. """
-    size = getSize(modelDirectory)
-    model = NeuronalNetwork(size, modelDirectory, 20000, 8)
-    logging.info('Loading neuronal network from directory %s' % modelDirectory)
-    model.create(lazy=True)
+    """Creates a song from the given model and save it.
+
+    :param modelDirectory: Path of the directory to load model from.
+    :param songPath: Path of the song file to remix.
+    :param remixPath: Path of the output file to write.
+    """
+    logging.load('Loading model from %s' % modelDirectory)
+    model = NeuronalNetwork.load(modelDirectory)
     logging.info('Loading %s as numerical vector' % songPath)
-    vector = load(songPath)
+    vector = BatchIterator.load(songPath)
     logging.info('Applying neuronal network model to %s' % songPath)
     remixed = model.apply(vector)
     logging.info('Saving created song to %s' % remixPath)
     wavfile.write(remixPath, 44100, remixed) # TODO : Get rate ?
 
 def check(args, key):
-    """ Ensure parameter denoted from the given key exist in the args dictionary"""
+    """Ensure parameter denoted from the given key exist in the args dictionary.
+
+    :param args: Parsed command line arguments.
+    :param key: Key to check.
+    """
     if args.__dict__[key] == None:
         logging.error('Missing --%s parameter, abort' % key)
         exit(2)
@@ -71,7 +125,7 @@ if __name__ == '__main__':
     check(args, 'model')
     if args.train:
         check(args, 'dataset')
-        train(args.dataset, args.model, args.batchSize, args.learningRate, args.window, args.thread)
+        train(args.dataset, args.model, args.batchSize, args.learningRate, args.window, args.thread, args.create)
     elif args.create and not args.train:
         check(args, 'dataset')
         create(args.dataset, args.model, args.window, args.thread)

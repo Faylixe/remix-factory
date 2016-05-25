@@ -8,9 +8,12 @@ from controller.train import NeuronTrainer
 from controller.create import NeuronFactory
 from.controller.controller import Controller
 
+METADATA_FILE = '.metadata'
+
 class NeuronalNetwork:
     """Class that represents our neuronal network.
 
+    TODO : Documentation ?
     """
 
     def __init__(self, directory, size, window):
@@ -75,10 +78,11 @@ class NeuronalNetwork:
             monitor.next()
         return result
 
-    def save(self, path):
-        """Saves this neuronal network to the file denoted by the given path.
+    def save(self):
+        """Saves this neuronal network metadata.
 
-        The network is saved as a JSON file containing only model metadata including :
+        The metadata is saved as a JSON file in the model directory and include
+        following informations :
 
         * Model directory
         * Model size
@@ -86,23 +90,28 @@ class NeuronalNetwork:
 
         :param path: Path of the file to write.
         """
+        path = join(self.directory, METADATA_FILE)
         metadata = {'window': self.window, 'size': self.size, 'directory': self.directory}
         with open(path, 'w') as stream:
             json.dump(metadata, stream)
 
     @staticmethod
-    def load(path):
-        """Loads the neuronal network from the file denoted by the given path.
+    def load(directory):
+        """Loads the neuronal network from the given directory.
 
-        The network is loaded as a JSON file containing only model metadata, including :
+        The network is loaded from JSON file containing only model metadata,
+        including :
 
         * Model directory
         * Model size
         * Neuron window value
 
-        :param path: Path of the file to load as NeuronalNetwork instance.
+        :param directory: Path of the directory to load as NeuronalNetwork instance.
         :returns: Loaded instance.
         """
+        path = join(directory, METADATA_FILE)
+        if not exists(path):
+            raise IOError('%s file not found' % path)
         with open(path, 'r') as stream:
             metadata = json.loads(stream)
             size = metadata['size']
