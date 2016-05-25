@@ -1,8 +1,5 @@
 #!/usr/bin/python
 
-"""
-"""
-
 """ Compressed Binary Neuron file extension. """
 NEURON_EXTENSION = ".cbn"
 

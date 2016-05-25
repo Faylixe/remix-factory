@@ -13,23 +13,27 @@ DEFAULT_BATCH_SIZE = 10
 """ Default learning rate value. """
 DEFAULT_LEARNING_RATE = 1
 
-def getDataset(datasetDirectory):
+def getDataset(datasetDirectory, batchSize):
     """Creates and returns dataset from the given directory.
 
+    :param batchSize: Size for batch
     :returns: Created dataset instance as BatchIterator object.
     """
     logging.info('Load dataset from directory %s' % datasetDirectory)
-    return BatchIterator(datasetDirectory)
+    if batchSize == None:
+        batchSize = DEFAULT_BATCH_SIZE
+    return BatchIterator(datasetDirectory, batchSize)
 
-def create(datasetDirectory, modelDirectory, window):
+def create(datasetDirectory, modelDirectory, window, batchSize):
     """Creates empty neuronal network using given parameters.
 
     :param datasetDirectory: Path of the directory to extract dataset from.
     :param modelDirectory: Path of the directory to save built model in.
     :param window: Window size to use for each neuron.
+    :param batchSize: Size for batch
     :returns: Loaded dataset and created model.
     """
-    dataset = getDataset(datasetDirectory)
+    dataset = getDataset(datasetDirectory, batchSize)
     logging.info('Retrieving maximum vector size from dataset')
     size = dataset.getVectorSize()
     logging.info('Neuronal network size : %d' % size)
@@ -41,18 +45,19 @@ def create(datasetDirectory, modelDirectory, window):
     model.save()
     return dataset, model
 
-def prepare(datasetDirectory, modelDirectory, window, shouldCreate):
+def prepare(datasetDirectory, modelDirectory, window, batchSize, shouldCreate):
     """Prepares training by loading dataset, and model.
 
     :param datasetDirectory: Path of the directory to extract dataset from.
     :param modelDirectory: Path of the directory to save built model in.
     :param window: Window size to use for each neuron.
+    :param batchSize: Size for batch
     :param shouldCreate: Boolean flag that indicates if model should be created or loaded.
     :returns: Dataset and Model to use for training.
     """
     if shouldCreate:
-        return create(datasetDirectory, modelDirectory, window)
-    return getDataset(datasetDirectory), NeuronalNetwork.load(modelDirectory)
+        return create(datasetDirectory, modelDirectory, window, batchSize)
+    return getDataset(datasetDirectory, batchSize), NeuronalNetwork.load(modelDirectory)
 
 def train(datasetDirectory, modelDirectory, batchSize, learningRate, window, thread, shouldCreate):
     """ Performs a training step over the given model.
@@ -67,9 +72,7 @@ def train(datasetDirectory, modelDirectory, batchSize, learningRate, window, thr
     :param thread: Number of thread to use for creating model.
     :param shouldCreate: Boolean flag that indicates if model should be created or loaded.
     """
-    dataset, model = prepare(datasetDirectory, modelDirectory, window, shouldCreate)
-    if batchSize == None:
-        batchSize = DEFAULT_BATCH_SIZE
+    dataset, model = prepare(datasetDirectory, modelDirectory, window, batchSize, shouldCreate)
     if learningRate == None:
         learningRate = DEFAULT_LEARNING_RATE
     i = 0
@@ -126,7 +129,7 @@ if __name__ == '__main__':
         train(args.dataset, args.model, args.batchSize, args.learningRate, args.window, args.thread, args.create)
     elif args.create and not args.train:
         check(args, 'dataset')
-        create(args.dataset, args.model, args.window)
+        create(args.dataset, args.model, args.window, args.batchSize)
     elif args.remix:
         check(args, 'song')
         check(args, 'output')

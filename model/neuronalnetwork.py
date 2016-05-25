@@ -6,7 +6,9 @@ from os.path import exists
 
 from controller.train import NeuronTrainer
 from controller.create import NeuronFactory
-from.controller.controller import Controller
+from controller.controller import Controller
+from model.neuron import Neuron
+from model.neurons import Neurons
 
 METADATA_FILE = '.metadata'
 

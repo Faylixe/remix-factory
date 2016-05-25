@@ -3,6 +3,8 @@
 
 import time
 
+from shutil import copyfile
+
 from controller import Controller
 
 class NeuronFactory(Controller):

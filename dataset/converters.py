@@ -38,7 +38,7 @@ def convert(file):
     if not exists(CONVERTION_DIRECTORY):
         makedirs(CONVERTION_DIRECTORY)
     filename = splitext(basename(file))[0]
-    path = join(configuration.CONVERTION_DIRECTORY, filename + '.wav')
+    path = join(CONVERTION_DIRECTORY, filename + '.wav')
     if (not exists(path)):
         logging.info("Converting file %s" % file)
         CONVERTERS[extension](file).export(path, format='wav')

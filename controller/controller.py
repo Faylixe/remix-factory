@@ -21,7 +21,7 @@ class Controller:
         :param label: Output label to be displayed with progression.
         :param stream: (Optional) target stream in which progression will be written.
         """
-        self.counter = manager.Value('i', 0)
+        self.counter = Controller.manager.Value('i', 0)
         self.limit = limit
         self.label = label
         self.stream = stream

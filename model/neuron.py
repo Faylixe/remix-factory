@@ -28,9 +28,17 @@ class Neuron:
         """
         if not exists(directory):
             makedirs(directory)
+        self.id = id
         self.size = size
         self.file = join(directory, NEURON_PREFIX + str(id))
         self.compressedFile = self.file + NEURON_EXTENSION
+
+    def getIdentifier(self):
+        """Getter for the neuron identifier.
+
+        :returns: Identifier of this neuron.
+        """
+        return self.id
 
     def getCompressedFile(self):
         """Getter for compressed file path.
@@ -90,7 +98,7 @@ class Neuron:
         """
         output = self.apply(vector[0])
         weights = self.load()
-        for i in xrange(max(len(original), len(remixed))):
+        for i in xrange(max(len(vector[0]), len(vector[1]))):
             for j in (0, 1):
                 originalValue = [0, 0]
                 remixedValue = [0, 0]
@@ -119,7 +127,6 @@ class Neuron:
         """Loads the neuron weights from the associated file and returns it.
 
         :returns: Loaded weights vector.
-
         """
         with open(self.file, "wb") as target:
             with lzma.open(self.compressedFile, "r") as uncompressor:

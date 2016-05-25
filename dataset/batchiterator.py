@@ -43,7 +43,7 @@ class BatchIterator:
         :returns: Wav file numerical value as a numpy array.
         """
         if supported(file):
-            file = convert(file):
+            file = convert(file)
         _, data = wavfile.read(file)
         return data
 
@@ -56,8 +56,8 @@ class BatchIterator:
         :param directory: Directory to extract song from.
         :param batchSize:
         """
-        self.originalDirectory = getDirectory(directory, ORIGINAL)
-        self.remixedDirectory = getDirectory(directory, REMIXED)
+        self.originalDirectory = self.getDirectory(directory, ORIGINAL)
+        self.remixedDirectory = self.getDirectory(directory, REMIXED)
         self.files = []
         self.size = -1
         self.batchSize = batchSize
@@ -77,8 +77,8 @@ class BatchIterator:
         size = 0
         for file in self.files:
             remixed = join(self.remixedDirectory, basename(file))
-            size = max(size, len(load(file)))
-            size = max(size, len(load(remixed)))
+            size = max(size, len(self.load(file)))
+            size = max(size, len(self.load(remixed)))
         self.size = size
         return size
 
@@ -104,8 +104,8 @@ class BatchIterator:
             index = (self.current * self.batchSize) + i
             if index < len(self.files):
                 file = self.files[index]
-                original = load(file)
-                remixed = load(join(self.remixedDirectory, basename(file)))
+                original = self.load(file)
+                remixed = self.load(join(self.remixedDirectory, basename(file)))
                 batch.append((original, remixed))
         self.current = self.current + 1
         return batch

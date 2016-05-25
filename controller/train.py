@@ -35,6 +35,7 @@ class NeuronTrainer(Controller):
             if self.size == self.window:
                 neuron.train(vector, self.learningRate)
             else:
+                i = neuron.getIdentifier()
                 subvector = None
                 if i < self.window:
                     subvector = vector[0:self.window]
