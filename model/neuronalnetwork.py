@@ -28,19 +28,18 @@ class NeuronalNetwork:
         self.window = window
         self.neurons = Neurons(directory, window, size)
 
-    def create(self, thread=None):
+    def create(self):
         """Creates each neuron with default valued weights.
 
         It first creates a original neuron that will act as template. Then it
-        will copy this file in parallel, provisioning the internal neurons
-        reference collection at the same time.
-
-        :param thread: (Optional) Number of thread to use for creating neuron file.
+        will copy this file, provisioning the internal neurons reference
+        collection at the same time.
         """
         source = Neuron(self.directory, self.window, 'origin')
         source.reset()
         factory = NeuronFactory(source.getCompressedFile(), self.size)
-        controller.run(factory, self.neurons, thread)
+        for neuron in self.neurons:
+            factory(neuron)
 
     def train(self, corpus, learningRate, thread=None):
         """ Trains this network using gradient descent.

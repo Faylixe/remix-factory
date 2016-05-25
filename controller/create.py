@@ -20,7 +20,6 @@ class NeuronFactory(Controller):
         """
         Controller.__init__(self, size, "Creating neurons")
         self.source = source
-        self.lock = Controller.manager.Lock()
 
     def __call__(self, neuron):
         """Creates empty model as compressed file for the given neuron.
@@ -28,6 +27,4 @@ class NeuronFactory(Controller):
         :param neuron: Neuron to create file for.
         """
         copyfile(self.source, neuron.getCompressedFile())
-        with self.lock:
-            self.next()
-            #time.sleep(0.001) # TODO : Check if usefull ?
+        self.next()
