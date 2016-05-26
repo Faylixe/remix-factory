@@ -2,7 +2,7 @@
 
 import numpy
 
-from os.path import exists
+from os.path import exists, join
 
 from controller.train import NeuronTrainer
 from controller.create import NeuronFactory

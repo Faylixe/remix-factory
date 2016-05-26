@@ -31,7 +31,6 @@ class NeuronTrainer(Controller):
         :param neuron: Neuron to train using internal corpus.
         """
         for vector in self.corpus:
-            # TODO : Validate subvectorization by window model.
             if self.size == self.window:
                 neuron.train(vector, self.learningRate)
             else:
