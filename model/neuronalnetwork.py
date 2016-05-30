@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import json
 import numpy
 
 from os.path import exists, join
