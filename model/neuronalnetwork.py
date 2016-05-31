@@ -54,7 +54,7 @@ class NeuronalNetwork:
         if not exists(self.directory):
             raise IOError('Directory %s not found, abort' % self.directory)
         trainer = NeuronTrainer(corpus, self.size, self.window, learningRate)
-        controller.run(trainer, self.neurons, thread)
+        Controller.run(trainer, self.neurons, thread)
 
     def apply(self, vector):
         """Transforms the given vector by applying each neuron to it.
