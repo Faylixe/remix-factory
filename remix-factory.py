@@ -89,7 +89,7 @@ def generate(modelDirectory, songPath, remixPath):
     :param songPath: Path of the song file to remix.
     :param remixPath: Path of the output file to write.
     """
-    logging.load('Loading model from %s' % modelDirectory)
+    logging.info('Loading model from %s' % modelDirectory)
     model = NeuronalNetwork.load(modelDirectory)
     logging.info('Loading %s as numerical vector' % songPath)
     vector = BatchIterator.load(songPath)

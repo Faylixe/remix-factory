@@ -29,7 +29,9 @@ class Controller:
     def next(self):
         """ Increments counter and display progression. """
         self.counter.value += 1
-        progress = '%s (%d/%d)\r' % (self.label, self.counter.value, self.limit)
+        progress = '%s (%d/%d)' % (self.label, self.counter.value, self.limit)
+        if self.counter.value < self.limit:
+            progress += '\r'
         self.stream.write(progress)
         self.stream.flush()
 

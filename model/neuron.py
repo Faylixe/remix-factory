@@ -117,7 +117,7 @@ class Neuron:
 
         :param weights: Weights vector to save.
         """
-        weights.tofile(self.file)
+        numpy.save(self.file, weights)
         with open(self.file, "rb") as source:
             with lzma.open(self.compressedFile, "w") as compressor:
                 compressor.write(source.read())

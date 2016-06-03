@@ -65,7 +65,8 @@ class NeuronalNetwork:
         if (self.size < len(vector)):
             raise IOError('Given vector is too big for this neuronal network')
         result = numpy.empty(self.size, dtype='int16')
-        for i in xrange(self.size):
+        i = 0
+        for neuron in self.neurons:
             if self.size == self.window:
                 result[i] = self.neurons[i].apply(vector)
             else:
@@ -76,8 +77,9 @@ class NeuronalNetwork:
                     subvector = vector[self.size - self.window:]
                 else:
                     subvector = vector[i:i + self.window]
-                result[i] = self.neurons[i].apply(subvector)
+                result[i] = neuron.apply(subvector)
             monitor.next()
+            i += 1
         return result
 
     def save(self):
@@ -115,8 +117,8 @@ class NeuronalNetwork:
         if not exists(path):
             raise IOError('%s file not found' % path)
         with open(path, 'r') as stream:
-            metadata = json.loads(stream)
+            metadata = json.loads(stream.read())
             size = metadata['size']
             window = metadata['window']
             directory = metadata['directory']
-            network = NeuronalNetwork(directory, size, window)
+            return NeuronalNetwork(directory, size, window)
